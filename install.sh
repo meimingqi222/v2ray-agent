@@ -3083,8 +3083,8 @@ readPortHopping() {
     local portHoppingEnd=
 
     if [[ "${release}" == "centos" ]]; then
-        portHoppingStart=$(sudo firewall-cmd --list-forward-ports | grep "toport=${targetPort}" | head -1 | cut -d ":" -f 1 | cut -d "=" -f 2)
-        portHoppingEnd=$(sudo firewall-cmd --list-forward-ports | grep "toport=${targetPort}" | tail -n 1 | cut -d ":" -f 1 | cut -d "=" -f 2)
+        portHoppingStart=$(sudo firewall-cmd --list-forward-ports 2>/dev/null | grep "toport=${targetPort}" | head -1 | cut -d ":" -f 1 | cut -d "=" -f 2)
+        portHoppingEnd=$(sudo firewall-cmd --list-forward-ports 2>/dev/null | grep "toport=${targetPort}" | tail -n 1 | cut -d ":" -f 1 | cut -d "=" -f 2)
     else
         if iptables-save | grep -q "mack-a_${type}_portHopping"; then
             local portHopping=
