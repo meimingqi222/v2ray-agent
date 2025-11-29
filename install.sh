@@ -698,7 +698,7 @@ allowPort() {
         type=tcp
     fi
     # 如果防火墙启动状态则添加相应的开放端口
-    if dpkg -l | grep -q "^[[:space:]]*ii[[:space:]]\+ufw"; then
+    if command -v dpkg &> /dev/null && dpkg -l | grep -q "^[[:space:]]*ii[[:space:]]\+ufw"; then
         if ufw status | grep -q "Status: active"; then
             if ! ufw status | grep -q "$1/${type}"; then
                 sudo ufw allow "$1/${type}"
@@ -727,7 +727,7 @@ allowPort() {
                 checkUFWAllowPort "$1"
             fi
         fi
-    elif dpkg -l | grep -q "^[[:space:]]*ii[[:space:]]\+netfilter-persistent" && systemctl status netfilter-persistent 2>/dev/null | grep -q "active (exited)"; then
+    elif command -v dpkg &> /dev/null && dpkg -l | grep -q "^[[:space:]]*ii[[:space:]]\+netfilter-persistent" && systemctl status netfilter-persistent 2>/dev/null | grep -q "active (exited)"; then
         local updateFirewalldStatus=
         if ! iptables -L | grep -q "$1/${type}(mack-a)"; then
             updateFirewalldStatus=true
