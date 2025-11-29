@@ -864,15 +864,15 @@ readConfigHostPathUUID() {
             else
                 currentDefaultPort=$(jq -r .inbounds[0].port ${configPath}${frontingType}.json)
             fi
-            currentUUID=$(jq -r .inbounds[0].settings.clients[0].id ${configPath}${frontingType}.json)
-            currentClients=$(jq -r .inbounds[0].settings.clients ${configPath}${frontingType}.json)
+            currentUUID=$(jq -r .inbounds[0].settings.clients[0].id//.inbounds[0].users[0].uuid ${configPath}${frontingType}.json)
+            currentClients=$(jq -r .inbounds[0].settings.clients//.inbounds[0].users ${configPath}${frontingType}.json)
         fi
 
         # reality
         if echo ${currentInstallProtocolType} | grep -q ",7,"; then
 
-            currentClients=$(jq -r .inbounds[1].settings.clients ${configPath}07_VLESS_vision_reality_inbounds.json)
-            currentUUID=$(jq -r .inbounds[1].settings.clients[0].id ${configPath}07_VLESS_vision_reality_inbounds.json)
+            currentClients=$(jq -r .inbounds[1].settings.clients//.inbounds[0].users ${configPath}07_VLESS_vision_reality_inbounds.json)
+            currentUUID=$(jq -r .inbounds[1].settings.clients[0].id//.inbounds[0].users[0].uuid ${configPath}07_VLESS_vision_reality_inbounds.json)
             xrayVLESSRealityVisionPort=$(jq -r .inbounds[0].port ${configPath}07_VLESS_vision_reality_inbounds.json)
             if [[ "${currentPort}" == "${xrayVLESSRealityVisionPort}" ]]; then
                 xrayVLESSRealityVisionPort="${currentDefaultPort}"
@@ -885,11 +885,11 @@ readConfigHostPathUUID() {
                 currentHost=$(grep 'server_name' <${nginxConfigPath}sing_box_VMess_HTTPUpgrade.conf | awk '{print $2}')
                 currentHost=${currentHost//;/}
             fi
-            currentUUID=$(jq -r .inbounds[0].users[0].uuid ${configPath}${frontingType}.json)
-            currentClients=$(jq -r .inbounds[0].users ${configPath}${frontingType}.json)
+            currentUUID=$(jq -r .inbounds[0].users[0].uuid//.inbounds[0].settings.clients[0].id ${configPath}${frontingType}.json)
+            currentClients=$(jq -r .inbounds[0].users//.inbounds[0].settings.clients ${configPath}${frontingType}.json)
         else
-            currentUUID=$(jq -r .inbounds[0].users[0].uuid ${configPath}${frontingTypeReality}.json)
-            currentClients=$(jq -r .inbounds[0].users ${configPath}${frontingTypeReality}.json)
+            currentUUID=$(jq -r .inbounds[0].users[0].uuid//.inbounds[0].settings.clients[0].id ${configPath}${frontingTypeReality}.json)
+            currentClients=$(jq -r .inbounds[0].users//.inbounds[0].settings.clients ${configPath}${frontingTypeReality}.json)
         fi
     fi
 
@@ -2868,7 +2868,8 @@ initSingBoxClients() {
     fi
     local users=
     users=[]
-    while read -r user; do
+    if [[ -n "${currentClients}" && "${currentClients}" != "null" ]]; then
+        while read -r user; do
         uuid=$(echo "${user}" | jq -r .uuid//.id//.password)
         name=$(echo "${user}" | jq -r .name//.email//.username | awk -F "[-]" '{print $1}')
         currentUser=
@@ -2941,7 +2942,8 @@ initSingBoxClients() {
             users=$(echo "${users}" | jq -r ". +=[${currentUser}]")
         fi
 
-    done < <(echo "${currentClients}" | jq -c '.[]')
+        done < <(echo "${currentClients}" | jq -c '.[]')
+    fi
     echo "${users}"
 }
 
@@ -5369,14 +5371,18 @@ showAccounts() {
     # VLESS reality vision
     if echo ${currentInstallProtocolType} | grep -q ",7,"; then
         echoContent skyBlue "============================= VLESS reality_vision [推荐]  ==============================\n"
-        jq .inbounds[1].settings.clients//.inbounds[0].users ${configPath}07_VLESS_vision_reality_inbounds.json | jq -c '.[]' | while read -r user; do
+        local clients
+        clients=$(jq .inbounds[1].settings.clients//.inbounds[0].users ${configPath}07_VLESS_vision_reality_inbounds.json)
+        if [[ -n "${clients}" && "${clients}" != "null" ]]; then
+            echo "${clients}" | jq -c '.[]' | while read -r user; do
             local email=
             email=$(echo "${user}" | jq -r .email//.name)
 
             echoContent skyBlue "\n ---> 账号:${email}"
             echo
             defaultBase64Code vlessReality "${xrayVLESSRealityVisionPort}${singBoxVLESSRealityVisionPort}" "${email}" "$(echo "${user}" | jq -r .id//.uuid)"
-        done
+            done
+        fi
     fi
     # VLESS reality gRPC
     if echo ${currentInstallProtocolType} | grep -q ",8,"; then
